@@ -40,6 +40,12 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const Scaffold(
+          body: Center(child: Text('Sign in is not configured yet.')),
+        ),
+      ),
       if (kEnableComponentShowcase && config.environment != AppEnvironment.prod)
         GoRoute(
           path: '/showcase',
@@ -48,10 +54,14 @@ GoRouter appRouter(Ref ref) {
     ],
     redirect: (context, state) {
       final gate = ref.read(appGateProvider);
-      final isBootstrapping = gate == AppGateState.bootstrapping;
-      final onBootstrap = state.matchedLocation == '/bootstrap';
-      if (isBootstrapping && !onBootstrap) return '/bootstrap';
-      if (!isBootstrapping && onBootstrap) return '/';
+      final location = state.matchedLocation;
+      if (gate == AppGateState.bootstrapping) {
+        return location == '/bootstrap' ? null : '/bootstrap';
+      }
+      if (gate == AppGateState.unauthenticated) {
+        return location == '/login' ? null : '/login';
+      }
+      if (location == '/bootstrap' || location == '/login') return '/';
       return null;
     },
   );

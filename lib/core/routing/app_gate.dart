@@ -1,9 +1,25 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../session/session_providers.dart';
+import '../session/session_snapshot.dart';
+
 part 'app_gate.g.dart';
 
-// Phase 1 only: later phases derive this from version, onboarding and session.
-enum AppGateState { bootstrapping, ready }
+enum AppGateState {
+  bootstrapping,
+  unauthenticated,
+  authenticatedOffline,
+  authenticatedOnline,
+}
 
 @Riverpod(keepAlive: true)
-AppGateState appGate(Ref ref) => AppGateState.ready;
+AppGateState appGate(Ref ref) {
+  ref.watch(sessionRestorationProvider);
+  final session = ref.watch(sessionStateProvider);
+  return switch (session.value?.status) {
+    SessionStatus.unauthenticated => AppGateState.unauthenticated,
+    SessionStatus.authenticatedOffline => AppGateState.authenticatedOffline,
+    SessionStatus.authenticatedOnline => AppGateState.authenticatedOnline,
+    _ => AppGateState.bootstrapping,
+  };
+}

@@ -10,7 +10,16 @@ import 'package:go_router/go_router.dart';
 
 void main() {
   testWidgets('launches through go_router', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: AppRoot()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appGateProvider.overrideWith(
+            (ref) => AppGateState.authenticatedOnline,
+          ),
+        ],
+        child: const AppRoot(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Flutter Starter'), findsOneWidget);

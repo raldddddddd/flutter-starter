@@ -1,4 +1,5 @@
 {
   "APP_ENV": "dev",
+  "API_BASE_URL": "https://dev-api.example.invalid",
   "ENABLE_COMPONENT_SHOWCASE": "true"
 }
