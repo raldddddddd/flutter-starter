@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- flutter_secure_storage uses SharedPreferences for encrypted data and keys. -->
+    <exclude domain="sharedpref" path="." />
+    <!-- SharedPreferencesAsync defaults to one DataStore file containing the install marker. -->
+    <exclude domain="file" path="datastore/" />
+    <!-- drift_flutter uses filesDir/flutter_starter.sqlite; exclude sidecars as well. -->
+    <exclude domain="file" path="flutter_starter.sqlite" />
+    <exclude domain="file" path="flutter_starter.sqlite-wal" />
+    <exclude domain="file" path="flutter_starter.sqlite-shm" />
+    <exclude domain="file" path="flutter_starter.sqlite-journal" />
+</full-backup-content>
