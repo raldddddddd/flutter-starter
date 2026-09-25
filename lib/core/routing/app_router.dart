@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../app/app_config.dart';
+import '../../app/developer_flags.dart';
+import '../../shared/showcase/component_showcase_screen.dart';
+import '../../shared/widgets/app_buttons.dart';
 import 'app_gate.dart';
 
 part 'app_router.g.dart';
@@ -16,7 +19,20 @@ GoRouter appRouter(Ref ref) {
         path: '/',
         builder: (context, state) => Scaffold(
           appBar: AppBar(title: const Text('Flutter Starter')),
-          body: Center(child: Text('Environment: ${config.environment.name}')),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Environment: ${config.environment.name}'),
+                if (kEnableComponentShowcase &&
+                    config.environment != AppEnvironment.prod)
+                  AppTextButton(
+                    label: 'Component Showcase',
+                    onPressed: () => context.go('/showcase'),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
       GoRoute(
@@ -24,6 +40,11 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
+      if (kEnableComponentShowcase && config.environment != AppEnvironment.prod)
+        GoRoute(
+          path: '/showcase',
+          builder: (context, state) => const ComponentShowcaseScreen(),
+        ),
     ],
     redirect: (context, state) {
       final gate = ref.read(appGateProvider);

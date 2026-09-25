@@ -1,3 +1,4 @@
 {
-  "APP_ENV": "staging"
+  "APP_ENV": "staging",
+  "ENABLE_COMPONENT_SHOWCASE": "false"
 }
