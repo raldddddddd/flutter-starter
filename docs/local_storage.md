@@ -13,8 +13,12 @@ the same default `FlutterSecureStorage` configuration for session credentials.
 Schema v1 has only `cache_metadata_entries`. Its composite key is
 `(account_id, resource_key)`, and the presence of a row with
 `last_fetched_at` distinguishes a successful empty fetch from never fetched.
-All future cache and business tables are user-scoped by default. There are no
-device-scoped tables in v1; any future exception needs explicit documentation.
+Schema v2 adds the account-scoped `sample_items` reference list, keyed by
+`(account_id, item_id)` with a stable position. Its v1-to-v2 migration creates
+the table without dropping existing cache metadata. The sample repository
+replaces the complete one-scope list in a transaction and clears its rows on
+logout. All future cache and business tables are user-scoped by default. There
+are no device-scoped tables; any future exception needs explicit documentation.
 Repositories should access the database through `appDatabaseProvider` and
 check the session epoch inside transactions before writing user data.
 
@@ -55,5 +59,5 @@ dart run drift_dev schema generate drift_schemas/ test/generated_migrations/
 flutter test
 ```
 
-Keep every exported schema. The v1 baseline is preserved in
-`drift_schemas/drift_schema_v1.json`.
+Keep every exported schema. The v1 baseline and v2 sample migration are
+preserved in `drift_schemas/`.

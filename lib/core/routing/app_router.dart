@@ -4,6 +4,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../app/app_config.dart';
 import '../../app/developer_flags.dart';
+import '../../features/sample/presentation/sample_demo_entry.dart';
+import '../../features/sample/presentation/sample_screen.dart';
 import '../../shared/showcase/component_showcase_screen.dart';
 import '../../shared/widgets/app_buttons.dart';
 import 'app_gate.dart';
@@ -24,6 +26,10 @@ GoRouter appRouter(Ref ref) {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('Environment: ${config.environment.name}'),
+                AppTextButton(
+                  label: 'Sample items',
+                  onPressed: () => context.go('/sample'),
+                ),
                 if (kEnableComponentShowcase &&
                     config.environment != AppEnvironment.prod)
                   AppTextButton(
@@ -42,9 +48,15 @@ GoRouter appRouter(Ref ref) {
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Sign in is not configured yet.')),
-        ),
+        builder: (context, state) => config.environment == AppEnvironment.dev
+            ? const SampleDemoEntry()
+            : const Scaffold(
+                body: Center(child: Text('Sign in is not configured yet.')),
+              ),
+      ),
+      GoRoute(
+        path: '/sample',
+        builder: (context, state) => const SampleScreen(),
       ),
       if (kEnableComponentShowcase && config.environment != AppEnvironment.prod)
         GoRoute(

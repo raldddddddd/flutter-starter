@@ -230,7 +230,7 @@ final class SessionManager {
     );
     if (oldAccountId != null) {
       await clean(() async {
-        await _database.clearAccountMetadata(oldAccountId);
+        await _database.clearAccountData(oldAccountId);
       });
     }
     await clean(_preferences.clearUser);

@@ -15,7 +15,18 @@ class CacheMetadataEntries extends Table {
   Set<Column<Object>> get primaryKey => {accountId, resourceKey};
 }
 
-@DriftDatabase(tables: [CacheMetadataEntries])
+/// This reference list has one authoritative scope per account.
+class SampleItems extends Table {
+  TextColumn get accountId => text()();
+  TextColumn get itemId => text()();
+  TextColumn get title => text()();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {accountId, itemId};
+}
+
+@DriftDatabase(tables: [CacheMetadataEntries, SampleItems])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(
@@ -29,12 +40,16 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) => migrator.createAll(),
-    onUpgrade: (migrator, from, to) {
+    onUpgrade: (migrator, from, to) async {
+      if (from == 1 && to == 2) {
+        await migrator.createTable(sampleItems);
+        return;
+      }
       throw StateError('Missing explicit Drift migration from $from to $to.');
     },
   );
@@ -78,4 +93,33 @@ class AppDatabase extends _$AppDatabase {
   Future<int> clearAccountMetadata(String accountId) => (delete(
     cacheMetadataEntries,
   )..where((entry) => entry.accountId.equals(accountId))).go();
+
+  Stream<List<SampleItem>> watchSampleItems(String accountId) =>
+      (select(sampleItems)
+            ..where((entry) => entry.accountId.equals(accountId))
+            ..orderBy([(entry) => OrderingTerm.asc(entry.position)]))
+          .watch();
+
+  Future<List<SampleItem>> sampleItemsFor(String accountId) =>
+      (select(sampleItems)
+            ..where((entry) => entry.accountId.equals(accountId))
+            ..orderBy([(entry) => OrderingTerm.asc(entry.position)]))
+          .get();
+
+  Future<void> replaceSampleItems(
+    String accountId,
+    List<SampleItemsCompanion> items,
+  ) async {
+    await (delete(
+      sampleItems,
+    )..where((entry) => entry.accountId.equals(accountId))).go();
+    await batch((batch) => batch.insertAll(sampleItems, items));
+  }
+
+  Future<void> clearAccountData(String accountId) => transaction(() async {
+    await (delete(
+      sampleItems,
+    )..where((entry) => entry.accountId.equals(accountId))).go();
+    await clearAccountMetadata(accountId);
+  });
 }

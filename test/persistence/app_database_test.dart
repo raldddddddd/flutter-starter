@@ -8,8 +8,8 @@ void main() {
   setUp(() => database = AppDatabase(NativeDatabase.memory()));
   tearDown(() => database.close());
 
-  test('creates schema version 1 and distinguishes never fetched', () async {
-    expect(database.schemaVersion, 1);
+  test('creates schema version 2 and distinguishes never fetched', () async {
+    expect(database.schemaVersion, 2);
     expect(await database.metadataFor('alice', 'feed'), isNull);
     expect(
       await database
