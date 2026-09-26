@@ -37,3 +37,8 @@ classify errors or otherwise branch on source/runtime type-name strings.
 
 See [Flutter's obfuscation guide](https://docs.flutter.dev/deployment/obfuscate)
 for symbolication and platform-specific behavior.
+
+## Validation status
+
+Automated accessibility tests and hosted CI have passed. Manual VoiceOver (iOS)
+and TalkBack (Android) accessibility validation has not yet been completed.
