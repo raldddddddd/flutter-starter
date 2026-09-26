@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/session/session_providers.dart';
 import '../../../core/session/session_snapshot.dart';
+import '../../../l10n/generated/app_localizations.dart';
+import '../../../shared/presentation/failure_message_key.dart';
 import '../../../shared/widgets/app_states.dart';
 import 'sample_providers.dart';
 import 'sample_view_state.dart';
@@ -27,6 +29,7 @@ class _SampleScreenState extends ConsumerState<SampleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final refresh = ref.watch(sampleRefreshActionProvider);
     final save = ref.watch(sampleSaveActionProvider);
     final view = deriveSampleViewState(
@@ -40,9 +43,8 @@ class _SampleScreenState extends ConsumerState<SampleScreen> {
 
     ref.listen(sampleRefreshActionProvider, (previous, next) {
       if (previous?.isLoading == true && next is AsyncData<void>) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sample items are up to date.')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.sampleItemsUpToDate)));
       }
     });
     ref.listen(sampleSaveActionProvider, (previous, next) {
@@ -50,16 +52,16 @@ class _SampleScreenState extends ConsumerState<SampleScreen> {
           next is AsyncData &&
           next.value != null) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Sample item added.')));
+            .showSnackBar(SnackBar(content: Text(l10n.sampleItemAdded)));
       }
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sample items'),
+        title: Text(l10n.sampleItemsTitle),
         actions: [
           IconButton(
-            tooltip: 'Refresh sample items',
+            tooltip: l10n.refreshSampleItems,
             onPressed: refresh.isLoading
                 ? null
                 : () => ref
@@ -75,58 +77,68 @@ class _SampleScreenState extends ConsumerState<SampleScreen> {
                   ? null
                   : () => ref
                         .read(sampleSaveActionProvider.notifier)
-                        .save('New sample item'),
+                        .save(l10n.newSampleItem),
               icon: const Icon(Icons.add),
-              label: const Text('Add sample item'),
+              label: Text(l10n.addSampleItem),
             )
           : null,
-      body: Column(
-        children: [
-          if (offline)
-            const ListTile(
-              leading: Icon(Icons.cloud_off_outlined),
-              title: Text('Offline session: showing local data'),
-            ),
-          if (view
-              case SampleContent(refreshFailure: _?) ||
-                  SampleEmpty(refreshFailure: _?))
-            const ListTile(
-              leading: Icon(Icons.error_outline),
-              title: Text('Refresh failed. Showing cached items.'),
-            ),
-          Expanded(child: _body(view, ref)),
-        ],
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            if (offline)
+              ListTile(
+                leading: const Icon(Icons.cloud_off_outlined),
+                title: Text(l10n.offlineSessionNotice),
+              ),
+            if (view
+                case SampleContent(refreshFailure: _?) ||
+                    SampleEmpty(refreshFailure: _?))
+              ListTile(
+                leading: const Icon(Icons.error_outline),
+                title: Text(l10n.cachedRefreshError),
+              ),
+            Expanded(child: _body(view, ref)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _body(SampleViewState view, WidgetRef ref) => switch (view) {
-    SampleInitialLoading() => const LoadingState(label: 'Loading sample items'),
-    SampleInitialError() => ErrorState(
-      title: 'Unable to load sample items',
-      message: 'Try refreshing again.',
-      onRetry: () =>
-          ref.read(sampleRefreshActionProvider.notifier).forceRefresh(),
-    ),
-    SampleEmpty(:final refreshing) => Stack(
-      children: [
-        const EmptyState(title: 'No sample items yet'),
-        if (refreshing) const LinearProgressIndicator(),
-      ],
-    ),
-    SampleContent(:final items, :final refreshing) => Column(
-      children: [
-        if (refreshing) const LinearProgressIndicator(),
-        Expanded(
-          child: ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (context, index) => ListTile(
-              key: ValueKey(items[index].id),
-              title: Text(items[index].title),
+  Widget _body(SampleViewState view, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return switch (view) {
+      SampleInitialLoading() => LoadingState(label: l10n.loadingSampleItems),
+      SampleInitialError(:final failure) => ErrorState(
+        title: l10n.loadSampleItemsError,
+        message: localizedFailureMessage(l10n, failure),
+        onRetry: () =>
+            ref.read(sampleRefreshActionProvider.notifier).forceRefresh(),
+      ),
+      SampleEmpty(:final refreshing) => Stack(
+        children: [
+          EmptyState(title: l10n.noSampleItems),
+          if (refreshing) LinearProgressIndicator(semanticsLabel: l10n.loading),
+        ],
+      ),
+      SampleContent(:final items, :final refreshing) => Column(
+        children: [
+          if (refreshing) LinearProgressIndicator(semanticsLabel: l10n.loading),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Text(l10n.sampleItemCount(items.length)),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (context, index) => ListTile(
+                key: ValueKey(items[index].id),
+                title: Text(items[index].title),
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  };
+        ],
+      ),
+    };
+  }
 }

@@ -8,6 +8,7 @@ import 'package:flutter_starter/core/persistence/app_preferences.dart';
 import 'package:flutter_starter/core/persistence/persistence_providers.dart';
 import 'package:flutter_starter/core/network/network_providers.dart';
 import 'package:flutter_starter/core/design/app_theme.dart';
+import 'package:flutter_starter/l10n/generated/app_localizations.dart';
 import 'package:flutter_starter/core/session/session_manager.dart';
 import 'package:flutter_starter/features/sample/data/fake_sample_api_service.dart';
 import 'package:flutter_starter/features/sample/data/sample_data_providers.dart';
@@ -79,7 +80,12 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(theme: AppTheme.light, home: const SampleScreen()),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const SampleScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -99,7 +105,12 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(theme: AppTheme.light, home: const SampleScreen()),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const SampleScreen(),
+          ),
         ),
       );
       await tester.pumpAndSettle();

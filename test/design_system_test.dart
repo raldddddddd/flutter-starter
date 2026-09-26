@@ -3,6 +3,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_starter/core/design/app_layout_tokens.dart';
 import 'package:flutter_starter/core/design/app_theme.dart';
+import 'package:flutter_starter/l10n/generated/app_localizations.dart';
 import 'package:flutter_starter/shared/showcase/component_showcase_screen.dart';
 import 'package:flutter_starter/shared/widgets/app_buttons.dart';
 import 'package:flutter_starter/shared/widgets/app_card.dart';
@@ -10,6 +11,27 @@ import 'package:flutter_starter/shared/widgets/app_states.dart';
 import 'package:flutter_starter/shared/widgets/app_text_input.dart';
 
 void main() {
+  test('semantic color pairs meet text contrast baseline in both themes', () {
+    double contrast(Color a, Color b) {
+      final lighter = a.computeLuminance() > b.computeLuminance() ? a : b;
+      final darker = identical(lighter, a) ? b : a;
+      return (lighter.computeLuminance() + 0.05) /
+          (darker.computeLuminance() + 0.05);
+    }
+
+    for (final theme in [AppTheme.light, AppTheme.dark]) {
+      final colors = theme.colorScheme;
+      for (final (foreground, background) in [
+        (colors.onPrimary, colors.primary),
+        (colors.onSecondary, colors.secondary),
+        (colors.onSurface, colors.surface),
+        (colors.onError, colors.error),
+      ]) {
+        expect(contrast(foreground, background), greaterThanOrEqualTo(4.5));
+      }
+    }
+  });
+
   testWidgets('light and dark themes expose semantic color and layout roles', (
     tester,
   ) async {
@@ -19,6 +41,8 @@ void main() {
     ]) {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: mode,
@@ -48,6 +72,8 @@ void main() {
     final semantics = tester.ensureSemantics();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: AppTheme.light,
         home: Scaffold(
           body: Column(
@@ -115,6 +141,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: AppTheme.light,
         home: Scaffold(
           body: MediaQuery(
@@ -171,7 +199,12 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const ComponentShowcaseScreen()),
+      MaterialApp(
+        theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const ComponentShowcaseScreen(),
+      ),
     );
     expect(find.text('Semantic colors'), findsOneWidget);
     expect(
@@ -191,6 +224,85 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('showcase respects insets and long copy at 250% text scale', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(top: 42, bottom: 34);
+    tester.view.viewPadding = const FakeViewPadding(top: 42, bottom: 34);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(2.5)),
+          child: child!,
+        ),
+        home: const ComponentShowcaseScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getBottomLeft(find.byType(ListView)).dy,
+      lessThanOrEqualTo(810),
+    );
+    await tester.scrollUntilVisible(
+      find.textContaining('This is intentionally long copy'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.text('Localized formatting'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    expect(find.textContaining('Number: 12,345.67'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('long error content remains scrollable in a short viewport', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: MediaQuery(
+            data: const MediaQueryData(textScaler: TextScaler.linear(3)),
+            child: SizedBox(
+              width: 320,
+              height: 180,
+              child: ErrorState(
+                title: 'A longer translated error heading that wraps',
+                message:
+                    'A longer translated explanation that needs several lines.',
+                onRetry: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    await tester.ensureVisible(find.text('Retry'));
     await tester.pump();
     expect(tester.takeException(), isNull);
   });

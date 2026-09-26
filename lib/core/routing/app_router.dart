@@ -6,6 +6,7 @@ import '../../app/app_config.dart';
 import '../../app/developer_flags.dart';
 import '../../features/sample/presentation/sample_demo_entry.dart';
 import '../../features/sample/presentation/sample_screen.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../shared/showcase/component_showcase_screen.dart';
 import '../../shared/widgets/app_buttons.dart';
 import 'app_gate.dart';
@@ -19,27 +20,34 @@ GoRouter appRouter(Ref ref) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Flutter Starter')),
-          body: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Environment: ${config.environment.name}'),
-                AppTextButton(
-                  label: 'Sample items',
-                  onPressed: () => context.go('/sample'),
-                ),
-                if (kEnableComponentShowcase &&
-                    config.environment != AppEnvironment.prod)
-                  AppTextButton(
-                    label: 'Component Showcase',
-                    onPressed: () => context.go('/showcase'),
+        builder: (context, state) {
+          final l10n = AppLocalizations.of(context);
+          return Scaffold(
+            appBar: AppBar(title: Text(l10n.appTitle)),
+            body: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(l10n.environmentLabel(config.environment.name)),
+                      AppTextButton(
+                        label: l10n.sampleItemsTitle,
+                        onPressed: () => context.go('/sample'),
+                      ),
+                      if (kEnableComponentShowcase &&
+                          config.environment != AppEnvironment.prod)
+                        AppTextButton(
+                          label: l10n.componentShowcaseTitle,
+                          onPressed: () => context.go('/showcase'),
+                        ),
+                    ],
                   ),
-              ],
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
       GoRoute(
         path: '/bootstrap',
@@ -50,8 +58,14 @@ GoRouter appRouter(Ref ref) {
         path: '/login',
         builder: (context, state) => config.environment == AppEnvironment.dev
             ? const SampleDemoEntry()
-            : const Scaffold(
-                body: Center(child: Text('Sign in is not configured yet.')),
+            : Scaffold(
+                body: SafeArea(
+                  child: Center(
+                    child: Text(
+                      AppLocalizations.of(context).signInNotConfigured,
+                    ),
+                  ),
+                ),
               ),
       ),
       GoRoute(

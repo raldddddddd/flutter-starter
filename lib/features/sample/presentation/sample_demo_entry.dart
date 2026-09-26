@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../app/app_config.dart';
 import '../../../core/network/network_providers.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../shared/widgets/app_buttons.dart';
 
 part 'sample_demo_entry.g.dart';
@@ -39,21 +40,27 @@ class SampleDemoEntry extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final action = ref.watch(sampleDemoSessionActionProvider);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Sign in is not configured yet.'),
-            const SizedBox(height: 16),
-            PrimaryButton(
-              label: 'Open sample demo',
-              isLoading: action.isLoading,
-              onPressed: () =>
-                  ref.read(sampleDemoSessionActionProvider.notifier).start(),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.signInNotConfigured),
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  label: l10n.openSampleDemo,
+                  isLoading: action.isLoading,
+                  onPressed: () => ref
+                      .read(sampleDemoSessionActionProvider.notifier)
+                      .start(),
+                ),
+                if (action.hasError) Text(l10n.sampleDemoError),
+              ],
             ),
-            if (action.hasError) const Text('Unable to start the sample demo.'),
-          ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/design/app_layout_tokens.dart';
 import '../../core/design/app_theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_card.dart';
 import '../widgets/app_states.dart';
@@ -32,64 +33,72 @@ class _ComponentShowcaseScreenState extends State<ComponentShowcaseScreen> {
         ),
         child: Builder(
           builder: (context) {
+            final l10n = AppLocalizations.of(context);
             final spacing = context.layout;
             final scheme = Theme.of(context).colorScheme;
             final type = Theme.of(context).textTheme;
             return Scaffold(
-              appBar: AppBar(title: const Text('Component Showcase')),
+              appBar: AppBar(title: Text(l10n.componentShowcaseTitle)),
               body: SafeArea(
                 child: ListView(
                   padding: EdgeInsets.all(spacing.spaceMd),
                   children: [
                     SwitchListTile(
-                      title: const Text('Dark theme'),
+                      title: Text(l10n.showcaseDarkTheme),
                       value: _dark,
                       onChanged: (value) => setState(() => _dark = value),
                     ),
                     SwitchListTile(
-                      title: const Text('Large text (180%)'),
+                      title: Text(l10n.showcaseLargeText),
                       value: _largeText,
                       onChanged: (value) => setState(() => _largeText = value),
                     ),
                     _Section(
-                      title: 'Semantic colors',
+                      title: l10n.showcaseSemanticColors,
                       child: Wrap(
                         spacing: spacing.spaceSm,
                         runSpacing: spacing.spaceSm,
                         children: [
                           _ColorSample(
-                            'Primary',
+                            l10n.showcasePrimaryColor,
                             scheme.primary,
                             scheme.onPrimary,
                           ),
                           _ColorSample(
-                            'Secondary',
+                            l10n.showcaseSecondaryColor,
                             scheme.secondary,
                             scheme.onSecondary,
                           ),
                           _ColorSample(
-                            'Surface',
+                            l10n.showcaseSurfaceColor,
                             scheme.surface,
                             scheme.onSurface,
                           ),
-                          _ColorSample('Error', scheme.error, scheme.onError),
+                          _ColorSample(
+                            l10n.showcaseErrorColor,
+                            scheme.error,
+                            scheme.onError,
+                          ),
                         ],
                       ),
                     ),
                     _Section(
-                      title: 'Typography',
+                      title: l10n.showcaseTypography,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Display small', style: type.displaySmall),
-                          Text('Title large', style: type.titleLarge),
-                          Text('Body large', style: type.bodyLarge),
-                          Text('Label large', style: type.labelLarge),
+                          Text(
+                            l10n.showcaseDisplaySmall,
+                            style: type.displaySmall,
+                          ),
+                          Text(l10n.showcaseTitleLarge, style: type.titleLarge),
+                          Text(l10n.showcaseBodyLarge, style: type.bodyLarge),
+                          Text(l10n.showcaseLabelLarge, style: type.labelLarge),
                         ],
                       ),
                     ),
                     _Section(
-                      title: 'Spacing and radius',
+                      title: l10n.showcaseSpacingRadius,
                       child: Wrap(
                         spacing: spacing.spaceMd,
                         runSpacing: spacing.spaceMd,
@@ -123,20 +132,29 @@ class _ComponentShowcaseScreenState extends State<ComponentShowcaseScreen> {
                       ),
                     ),
                     _Section(
-                      title: 'Buttons',
+                      title: l10n.showcaseButtons,
                       child: Wrap(
                         spacing: spacing.spaceSm,
                         runSpacing: spacing.spaceSm,
                         children: [
-                          PrimaryButton(label: 'Primary', onPressed: () {}),
-                          SecondaryButton(label: 'Secondary', onPressed: () {}),
-                          AppTextButton(label: 'Text', onPressed: () {}),
-                          const PrimaryButton(
-                            label: 'Disabled',
+                          PrimaryButton(
+                            label: l10n.showcasePrimaryButton,
+                            onPressed: () {},
+                          ),
+                          SecondaryButton(
+                            label: l10n.showcaseSecondaryButton,
+                            onPressed: () {},
+                          ),
+                          AppTextButton(
+                            label: l10n.showcaseTextButton,
+                            onPressed: () {},
+                          ),
+                          PrimaryButton(
+                            label: l10n.showcaseDisabledButton,
                             onPressed: null,
                           ),
                           PrimaryButton(
-                            label: 'Loading',
+                            label: l10n.showcaseLoadingButton,
                             onPressed: () {},
                             isLoading: true,
                           ),
@@ -144,47 +162,58 @@ class _ComponentShowcaseScreenState extends State<ComponentShowcaseScreen> {
                       ),
                     ),
                     _Section(
-                      title: 'Text input',
+                      title: l10n.showcaseTextInput,
                       child: Column(
                         children: [
-                          const AppTextInput(
-                            label: 'Name',
-                            hint: 'Enter a name',
+                          AppTextInput(
+                            label: l10n.showcaseName,
+                            hint: l10n.showcaseNameHint,
                           ),
                           SizedBox(height: spacing.spaceMd),
-                          const AppTextInput(
-                            label: 'Disabled input',
+                          AppTextInput(
+                            label: l10n.showcaseDisabledInput,
                             enabled: false,
                           ),
                         ],
                       ),
                     ),
-                    const _Section(
-                      title: 'Card and long copy',
-                      child: Text(
-                        'This is intentionally long copy. It demonstrates how '
-                        'the starter card and typography respond when content '
-                        'wraps across several lines, the screen is narrow, or '
-                        'the reader chooses a much larger text size.',
-                      ),
+                    _Section(
+                      title: l10n.showcaseCardLongCopy,
+                      child: Text(l10n.showcaseLongCopy),
                     ),
-                    const _Section(
-                      title: 'Loading state',
-                      child: LoadingState(label: 'Loading content'),
+                    _Section(
+                      title: l10n.showcaseLoadingState,
+                      child: LoadingState(label: l10n.showcaseLoadingContent),
                     ),
-                    const _Section(
-                      title: 'Empty state',
+                    _Section(
+                      title: l10n.showcaseEmptyState,
                       child: EmptyState(
-                        title: 'Nothing here yet',
-                        message: 'New content will appear here when available.',
+                        title: l10n.showcaseNothingHere,
+                        message: l10n.showcaseNewContent,
                       ),
                     ),
                     _Section(
-                      title: 'Error state',
+                      title: l10n.showcaseErrorState,
                       child: ErrorState(
-                        title: 'Could not load content',
-                        message: 'Check your connection and try again.',
+                        title: l10n.showcaseCouldNotLoad,
+                        message: l10n.showcaseCheckConnection,
                         onRetry: () {},
+                      ),
+                    ),
+                    _Section(
+                      title: l10n.showcaseFormatting,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.showcaseGreeting('Developer')),
+                          Text(l10n.sampleItemCount(2)),
+                          Text(l10n.showcaseDate(DateTime(2026, 9, 26))),
+                          Text(
+                            l10n.showcaseTime(DateTime(2026, 9, 26, 14, 30)),
+                          ),
+                          Text(l10n.showcaseNumber(12345.67)),
+                          Text(l10n.showcaseCurrency(1234.5)),
+                        ],
                       ),
                     ),
                   ],

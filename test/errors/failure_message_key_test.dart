@@ -1,6 +1,8 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_starter/core/errors/app_failure.dart';
 import 'package:flutter_starter/shared/presentation/failure_message_key.dart';
+import 'package:flutter_starter/l10n/generated/app_localizations.dart';
 
 void main() {
   test('maps all typed failures to presentation meanings', () {
@@ -24,5 +26,16 @@ void main() {
     for (final MapEntry(key: failure, value: expected) in cases.entries) {
       expect(messageKeyFor(failure), expected);
     }
+  });
+
+  test('resolves a technical failure to localized copy', () async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(
+      localizedFailureMessage(
+        l10n,
+        const NetworkFailure(kind: NetworkFailureKind.timeout),
+      ),
+      l10n.failureTimeout,
+    );
   });
 }

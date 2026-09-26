@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/design/app_layout_tokens.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
@@ -71,12 +72,12 @@ class _ButtonContent extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const SizedBox(
+        SizedBox(
           width: 18,
           height: 18,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            semanticsLabel: 'Loading',
+            semanticsLabel: AppLocalizations.of(context).loading,
           ),
         ),
         SizedBox(width: context.layout.spaceSm),
