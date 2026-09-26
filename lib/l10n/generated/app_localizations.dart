@@ -100,6 +100,18 @@ abstract class AppLocalizations {
   /// **'Flutter Starter'**
   String get appTitle;
 
+  /// No description provided for @updateRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update required'**
+  String get updateRequiredTitle;
+
+  /// No description provided for @updateRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This version is no longer supported. Update the app to continue.'**
+  String get updateRequiredMessage;
+
   /// No description provided for @environmentLabel.
   ///
   /// In en, this message translates to:

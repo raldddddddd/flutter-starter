@@ -1,0 +1,20 @@
+{
+  "displayName": "Flutter Starter",
+  "dartPackageName": "flutter_starter",
+  "androidNamespace": "com.example.flutter_starter",
+  "androidApplicationIds": {
+    "dev": "com.example.flutter_starter.dev",
+    "staging": "com.example.flutter_starter.staging",
+    "prod": "com.example.flutter_starter"
+  },
+  "iosBundleIds": {
+    "dev": "com.example.flutterStarter.dev",
+    "staging": "com.example.flutterStarter.staging",
+    "prod": "com.example.flutterStarter"
+  },
+  "flavorDisplayNames": {
+    "dev": "Flutter Starter Dev",
+    "staging": "Flutter Starter Staging",
+    "prod": "Flutter Starter"
+  }
+}

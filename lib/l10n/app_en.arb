@@ -1,6 +1,8 @@
 {
   "@@locale": "en",
   "appTitle": "Flutter Starter",
+  "updateRequiredTitle": "Update required",
+  "updateRequiredMessage": "This version is no longer supported. Update the app to continue.",
   "environmentLabel": "Environment: {environment}",
   "@environmentLabel": {"placeholders": {"environment": {"type": "String"}}},
   "sampleItemsTitle": "Sample items",

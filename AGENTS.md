@@ -2,8 +2,8 @@
 
 Before making changes, read:
 
-- `docs/spec.md`
-- `docs/implementation_plan.md`
+- [docs/spec.md](docs/spec.md)
+- [docs/implementation_plan.md](docs/implementation_plan.md)
 
 `docs/spec.md` is the architectural source of truth.
 
@@ -27,3 +27,5 @@ Before making changes, read:
 - run static analysis;
 - run relevant tests;
 - report remaining warnings or specification conflicts.
+
+Use `./tool/verify.sh` for the shared local verification sequence.

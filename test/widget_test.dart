@@ -48,6 +48,21 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
+  testWidgets('required update takes the gate to the update screen', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appGateProvider.overrideWith((ref) => AppGateState.updateRequired),
+        ],
+        child: const AppRoot(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Update required'), findsOneWidget);
+  });
+
   testWidgets('showcase route is registered only outside production', (
     tester,
   ) async {

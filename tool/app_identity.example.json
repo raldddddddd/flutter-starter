@@ -1,0 +1,20 @@
+{
+  "displayName": "Acme Notes",
+  "dartPackageName": "acme_notes",
+  "androidNamespace": "com.acme.notes",
+  "androidApplicationIds": {
+    "dev": "com.acme.notes.dev",
+    "staging": "com.acme.notes.staging",
+    "prod": "com.acme.notes"
+  },
+  "iosBundleIds": {
+    "dev": "com.acme.notes.dev",
+    "staging": "com.acme.notes.staging",
+    "prod": "com.acme.notes"
+  },
+  "flavorDisplayNames": {
+    "dev": "Acme Notes Dev",
+    "staging": "Acme Notes Staging",
+    "prod": "Acme Notes"
+  }
+}

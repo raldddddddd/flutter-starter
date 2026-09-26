@@ -13,6 +13,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Flutter Starter';
 
   @override
+  String get updateRequiredTitle => 'Update required';
+
+  @override
+  String get updateRequiredMessage =>
+      'This version is no longer supported. Update the app to continue.';
+
+  @override
   String environmentLabel(String environment) {
     return 'Environment: $environment';
   }

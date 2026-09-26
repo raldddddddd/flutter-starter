@@ -55,6 +55,35 @@ GoRouter appRouter(Ref ref) {
             const Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
       GoRoute(
+        path: '/update-required',
+        builder: (context, state) {
+          final l10n = AppLocalizations.of(context);
+          return Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.updateRequiredTitle,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.updateRequiredMessage,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      GoRoute(
         path: '/login',
         builder: (context, state) => config.environment == AppEnvironment.dev
             ? const SampleDemoEntry()
@@ -84,10 +113,17 @@ GoRouter appRouter(Ref ref) {
       if (gate == AppGateState.bootstrapping) {
         return location == '/bootstrap' ? null : '/bootstrap';
       }
+      if (gate == AppGateState.updateRequired) {
+        return location == '/update-required' ? null : '/update-required';
+      }
       if (gate == AppGateState.unauthenticated) {
         return location == '/login' ? null : '/login';
       }
-      if (location == '/bootstrap' || location == '/login') return '/';
+      if (location == '/bootstrap' ||
+          location == '/login' ||
+          location == '/update-required') {
+        return '/';
+      }
       return null;
     },
   );
