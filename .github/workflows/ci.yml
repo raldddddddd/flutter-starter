@@ -54,6 +54,8 @@ jobs:
           flutter-version-file: .fvmrc
       - run: flutter pub get --enforce-lockfile
       - run: flutter build apk --debug --flavor dev --dart-define-from-file=config/dev.json
+      - name: Verify production release network build
+        run: flutter build apk --release --flavor prod --dart-define-from-file=config/prod.json
 
   ios-dev:
     name: iOS dev no-codesign build

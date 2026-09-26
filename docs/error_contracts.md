@@ -24,10 +24,13 @@ unwraps nested provider exceptions and preserves expected `AppFailure` values.
 The installed observer sends originating unexpected provider errors and their
 stack traces to the logging boundary, and skips dependency wrappers to avoid
 duplicate reports. Global Flutter and platform error hooks use the same
-boundary. The default development logger emits the message and stack trace but
-omits arbitrary exception text, which may contain credentials or response
-bodies. A product crash hook should redact the error object before forwarding
-it. Never put credentials or sensitive personal data in log messages.
+boundary. Framework errors retain Flutter's normal debug presentation. The
+default logger includes the error object in debug mode, but omits arbitrary
+exception text outside debug because it may contain credentials or response
+bodies. Repositories log `UnknownFailure` with its original cause and stack
+before returning it; expected operational failures are not error logs. A
+product crash hook should redact the error object before forwarding it.
+Never put credentials or sensitive personal data in log messages.
 
 `freezed` and `json_serializable` are installed for concrete future DTOs and
 models. No placeholder model is generated in Phase 4. The hand-written Result

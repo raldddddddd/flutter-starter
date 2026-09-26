@@ -8,9 +8,13 @@ import 'core/persistence/fresh_install_policy.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FreshInstallPolicy(
+  final freshInstallPolicy = FreshInstallPolicy(
     AppPreferences(SharedPreferencesAsync()),
     const FlutterSecureStorage(),
-  ).ensureInitialized();
-  bootstrap();
+  );
+  await bootstrap(
+    initializeInstallation: () async {
+      await freshInstallPolicy.ensureInitialized();
+    },
+  );
 }

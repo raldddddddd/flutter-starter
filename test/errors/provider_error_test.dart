@@ -119,4 +119,26 @@ void main() {
     } catch (_) {}
     expect(logger.errors, isEmpty);
   });
+
+  test('observer logs UnknownFailure with its original cause and stack', () {
+    final logger = RecordingLogger();
+    final cause = StateError('unexpected');
+    final stack = StackTrace.current;
+    final origin = Provider<int>(
+      (ref) => throw UnknownFailure(cause: cause, stackTrace: stack),
+      name: 'origin',
+    );
+    final dependent = Provider<int>((ref) => ref.watch(origin));
+    final container = ProviderContainer(
+      observers: [AppProviderObserver(logger)],
+      retry: (_, _) => null,
+    );
+    addTearDown(container.dispose);
+    try {
+      container.read(dependent);
+    } catch (_) {}
+    expect(logger.errors, hasLength(1));
+    expect(logger.errors.single.error, same(cause));
+    expect(logger.errors.single.stackTrace, same(stack));
+  });
 }

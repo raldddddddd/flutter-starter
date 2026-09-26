@@ -1,5 +1,7 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
+
 /// Logging boundary; a product can replace this with a redacting crash hook.
 abstract interface class AppLogger {
   void debug(String message);
@@ -36,7 +38,8 @@ final class DeveloperLogger implements AppLogger {
     message,
     name: 'flutter_starter',
     level: 1000,
-    // Arbitrary exception text may contain credentials or response bodies.
+    error: kDebugMode ? error : null,
+    // Outside debug, arbitrary exception text may contain credentials or bodies.
     // A product crash hook can inspect and redact [error] before forwarding.
     stackTrace: stackTrace,
   );

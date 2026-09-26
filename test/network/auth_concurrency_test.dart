@@ -145,12 +145,15 @@ void main() {
     () async {
       await database.markFetched('alice', 'feed', DateTime.utc(2026));
       final oldEpoch = session.snapshot.epoch;
+      Future<AppFailure?>? refreshOperation;
       appDio.httpClientAdapter = CallbackAdapter(
         (options, body) async => _jsonResponse(401),
       );
-      refreshDio.httpClientAdapter = CallbackAdapter(
-        (options, body) async => _jsonResponse(401),
-      );
+      refreshDio.httpClientAdapter = CallbackAdapter((options, body) async {
+        // Capture the shared operation before logout advances the epoch.
+        refreshOperation = session.refreshAccessToken(refresher);
+        return _jsonResponse(401);
+      });
 
       final error = await appDio
           .get<void>('/private')
@@ -162,7 +165,7 @@ void main() {
       // Logout cancels the original request while expiring its session.
       expect((error as DioException).type, DioExceptionType.cancel);
       // The request is cancelled as soon as logout starts; await cleanup too.
-      await session.refreshAccessToken(refresher);
+      await refreshOperation!;
       expect(session.snapshot.status, SessionStatus.unauthenticated);
       expect(session.snapshot.epoch, greaterThan(oldEpoch));
       expect(await database.metadataFor('alice', 'feed'), isNull);

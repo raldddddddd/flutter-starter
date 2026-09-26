@@ -86,17 +86,28 @@ final class SessionManager {
     if (accountId.isEmpty || accessToken.isEmpty || refreshToken.isEmpty) {
       throw ArgumentError('A complete session is required.');
     }
+    final previousAccountId = _snapshot.accountId;
     _advanceEpoch();
+    final epoch = _snapshot.epoch;
     _setState(SessionStatus.restoring);
     _cancelRequests();
     _accessToken = null;
     _refreshToken = null;
     try {
-      await _writeEnvelope(accountId, refreshToken);
+      await _queueSecure(() async {
+        if (_snapshot.epoch != epoch) return;
+        if (previousAccountId != accountId) {
+          await _clearUserScope(previousAccountId);
+        }
+        if (_snapshot.epoch != epoch) return;
+        await _storeEnvelope(accountId, refreshToken);
+      });
     } catch (_) {
+      if (_snapshot.epoch != epoch) return;
       _setState(SessionStatus.unauthenticated);
       rethrow;
     }
+    if (_snapshot.epoch != epoch) return;
     _accessToken = accessToken;
     _refreshToken = refreshToken;
     _setState(SessionStatus.authenticatedOnline, accountId: accountId);
@@ -110,33 +121,46 @@ final class SessionManager {
     }
     if (_refreshToken == null) {
       final epoch = _snapshot.epoch;
+      String? encoded;
       try {
-        final encoded = await _secureStorage.read(key: _envelopeKey);
-        if (_snapshot.epoch != epoch) return;
-        if (encoded == null) {
-          _setState(SessionStatus.unauthenticated);
-          return;
-        }
-        final decoded = jsonDecode(encoded);
-        if (decoded is! Map<String, dynamic> ||
-            decoded['accountId'] is! String ||
-            decoded['refreshToken'] is! String ||
-            (decoded['accountId'] as String).isEmpty ||
-            (decoded['refreshToken'] as String).isEmpty) {
-          _setState(SessionStatus.unauthenticated);
-          return;
-        }
-        _refreshToken = decoded['refreshToken'] as String;
-        _setState(
-          SessionStatus.restoring,
-          accountId: decoded['accountId'] as String,
-        );
+        encoded = await _secureStorage.read(key: _envelopeKey);
       } catch (_) {
         if (_snapshot.epoch != epoch) return;
-        // Secure storage is losable. A missing/corrupt envelope is signed out.
+        // A read exception may be transient; preserve the persisted scope.
         _setState(SessionStatus.unauthenticated);
         return;
       }
+      if (_snapshot.epoch != epoch) return;
+      Map<String, dynamic>? envelope;
+      try {
+        final decoded = encoded == null ? null : jsonDecode(encoded);
+        if (decoded is Map<String, dynamic> &&
+            decoded['accountId'] is String &&
+            decoded['refreshToken'] is String &&
+            (decoded['accountId'] as String).isNotEmpty &&
+            (decoded['refreshToken'] as String).isNotEmpty) {
+          envelope = decoded;
+        }
+      } on FormatException {
+        // Invalid JSON is definitively corrupt, unlike a storage read error.
+      }
+      if (envelope == null) {
+        try {
+          await _queueSecure(() async {
+            if (_snapshot.epoch == epoch) await _clearUserScope(null);
+          });
+        } finally {
+          if (_snapshot.epoch == epoch) {
+            _setState(SessionStatus.unauthenticated);
+          }
+        }
+        return;
+      }
+      _refreshToken = envelope['refreshToken'] as String;
+      _setState(
+        SessionStatus.restoring,
+        accountId: envelope['accountId'] as String,
+      );
     }
     await refreshAccessToken(refresher);
   }
@@ -183,9 +207,15 @@ final class SessionManager {
           try {
             await _writeEnvelope(accountId, refreshToken);
           } catch (error, stackTrace) {
+            if (_snapshot.epoch != epoch || _snapshot.accountId != accountId) {
+              return const AuthenticationFailure();
+            }
             _accessToken = null;
             _setState(SessionStatus.authenticatedOffline, accountId: accountId);
             return StorageFailure(cause: error, stackTrace: stackTrace);
+          }
+          if (_snapshot.epoch != epoch || _snapshot.accountId != accountId) {
+            return const AuthenticationFailure();
           }
           _refreshToken = refreshToken;
         }
@@ -225,29 +255,39 @@ final class SessionManager {
       }
     }
 
-    await clean(
-      () => _queueSecure(() => _secureStorage.delete(key: _envelopeKey)),
-    );
-    if (oldAccountId != null) {
-      await clean(() async {
-        await _database.clearAccountData(oldAccountId);
-      });
-    }
-    await clean(_preferences.clearUser);
+    // Keep scope cleanup in the same queue as session writes so a later login
+    // cannot publish its session before this logout finishes clearing user data.
+    await _queueSecure(() async {
+      await clean(() => _secureStorage.delete(key: _envelopeKey));
+      if (oldAccountId != null) {
+        await clean(() => _database.clearAccountData(oldAccountId));
+      }
+      await clean(_preferences.clearUser);
+    });
     if (firstError case final error?) {
       Error.throwWithStackTrace(error, firstStack!);
     }
   }
 
+  Future<void> _clearUserScope(String? accountId) async {
+    await _preferences.clearUser();
+    if (accountId == null) {
+      await _database.clearAllAccountData();
+    } else {
+      await _database.clearAccountData(accountId);
+    }
+  }
+
   Future<void> _writeEnvelope(String accountId, String refreshToken) =>
-      _queueSecure(
-        () => _secureStorage.write(
-          key: _envelopeKey,
-          value: jsonEncode({
-            'accountId': accountId,
-            'refreshToken': refreshToken,
-          }),
-        ),
+      _queueSecure(() => _storeEnvelope(accountId, refreshToken));
+
+  Future<void> _storeEnvelope(String accountId, String refreshToken) =>
+      _secureStorage.write(
+        key: _envelopeKey,
+        value: jsonEncode({
+          'accountId': accountId,
+          'refreshToken': refreshToken,
+        }),
       );
 
   Future<void> _queueSecure(Future<void> Function() action) {

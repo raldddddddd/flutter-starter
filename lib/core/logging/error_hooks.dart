@@ -4,6 +4,7 @@ import 'app_logger.dart';
 
 void installErrorHooks(AppLogger logger) {
   FlutterError.onError = (details) {
+    if (kDebugMode) FlutterError.presentError(details);
     logger.error(
       'Uncaught Flutter framework error',
       error: details.exception,

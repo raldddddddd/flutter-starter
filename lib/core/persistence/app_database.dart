@@ -122,4 +122,10 @@ class AppDatabase extends _$AppDatabase {
     )..where((entry) => entry.accountId.equals(accountId))).go();
     await clearAccountMetadata(accountId);
   });
+
+  /// Used when secure session identity is definitively missing or corrupt.
+  Future<void> clearAllAccountData() => transaction(() async {
+    await delete(sampleItems).go();
+    await delete(cacheMetadataEntries).go();
+  });
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -16,6 +17,11 @@ import '../persistence/app_preferences_test.dart' show MemoryPreferences;
 class MemorySecureStorage extends Fake implements FlutterSecureStorage {
   final values = <String, String>{};
   bool failRead = false;
+  Completer<void>? writeGate;
+  Completer<void>? writeStarted;
+  Object? writeError;
+  Completer<void>? deleteGate;
+  Completer<void>? deleteStarted;
 
   @override
   Future<void> write({
@@ -28,6 +34,12 @@ class MemorySecureStorage extends Fake implements FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
+    final gate = writeGate;
+    if (writeStarted case final started? when !started.isCompleted) {
+      started.complete();
+    }
+    if (gate != null) await gate.future;
+    if (writeError case final error?) throw error;
     if (value == null) {
       values.remove(key);
     } else {
@@ -58,7 +70,13 @@ class MemorySecureStorage extends Fake implements FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) async => values.remove(key);
+  }) async {
+    if (deleteStarted case final started? when !started.isCompleted) {
+      started.complete();
+    }
+    if (deleteGate case final gate?) await gate.future;
+    values.remove(key);
+  }
 }
 
 class FixedRefresher implements TokenRefresher {
@@ -204,6 +222,9 @@ void main() {
       refreshToken: 'ra',
     );
     final epoch = session.snapshot.epoch;
+    await preferences.setUserString('filter', 'alice-private');
+    await preferences.setDeviceString('theme', 'dark');
+    await database.markFetched('alice', 'feed', DateTime.utc(2026));
     await session.establishSession(
       accountId: 'bob',
       accessToken: 'b',
@@ -211,5 +232,176 @@ void main() {
     );
     expect(session.snapshot.epoch, greaterThan(epoch));
     expect(session.snapshot.accountId, 'bob');
+    expect(await preferences.getUserString('filter'), isNull);
+    expect(await preferences.getDeviceString('theme'), 'dark');
+    expect(await database.metadataFor('alice', 'feed'), isNull);
+  });
+
+  for (final fails in [false, true]) {
+    test('logout wins over pending login (write fails: $fails)', () async {
+      secure.writeGate = Completer<void>();
+      secure.writeStarted = Completer<void>();
+      if (fails) secure.writeError = StateError('write failed');
+      final login = session.establishSession(
+        accountId: 'alice',
+        accessToken: 'a',
+        refreshToken: 'r',
+      );
+      await secure.writeStarted!.future;
+      final logout = session.logout();
+      final epoch = session.snapshot.epoch;
+      secure.writeGate!.complete();
+      await login;
+      await logout;
+      expect(session.snapshot.status, SessionStatus.unauthenticated);
+      expect(session.snapshot.epoch, epoch);
+      expect(session.snapshot.accountId, isNull);
+      expect(session.accessToken, isNull);
+      expect(secure.values, isEmpty);
+      expect(
+        session.isCurrentSession(accountId: 'alice', epoch: epoch),
+        isFalse,
+      );
+    });
+
+    test(
+      'logout wins over rotated token persistence (write fails: $fails)',
+      () async {
+        await session.establishSession(
+          accountId: 'alice',
+          accessToken: 'a',
+          refreshToken: 'old',
+        );
+        secure.writeGate = Completer<void>();
+        secure.writeStarted = Completer<void>();
+        if (fails) secure.writeError = StateError('rotation failed');
+        final refresh = session.refreshAccessToken(
+          FixedRefresher(
+            const RefreshAccepted('new-access', refreshToken: 'new'),
+          ),
+        );
+        await secure.writeStarted!.future;
+        final logout = session.logout();
+        final epoch = session.snapshot.epoch;
+        secure.writeGate!.complete();
+        expect(await refresh, isA<AuthenticationFailure>());
+        await logout;
+        expect(session.snapshot.status, SessionStatus.unauthenticated);
+        expect(session.snapshot.accountId, isNull);
+        expect(session.accessToken, isNull);
+        expect(secure.values, isEmpty);
+        expect(
+          session.isCurrentSession(accountId: 'alice', epoch: epoch),
+          isFalse,
+        );
+      },
+    );
+  }
+
+  for (final envelope in [null, 'invalid json', '{}']) {
+    test(
+      'missing/corrupt envelope clears unknown user scope: $envelope',
+      () async {
+        if (envelope != null) secure.values['session.envelope'] = envelope;
+        await preferences.setUserString('filter', 'alice-private');
+        await preferences.setDeviceString('theme', 'dark');
+        await database.markFetched('alice', 'feed', DateTime.utc(2026));
+        await database.markFetched('other', 'feed', DateTime.utc(2026));
+        await database
+            .into(database.sampleItems)
+            .insert(
+              SampleItemsCompanion.insert(
+                accountId: 'alice',
+                itemId: 'private',
+                title: 'Private',
+                position: 0,
+              ),
+            );
+        await session.restore(FixedRefresher(const RefreshAccepted('unused')));
+        expect(session.snapshot.status, SessionStatus.unauthenticated);
+        expect(await preferences.getUserString('filter'), isNull);
+        expect(await preferences.getDeviceString('theme'), 'dark');
+        expect(await database.metadataFor('alice', 'feed'), isNull);
+        expect(await database.metadataFor('other', 'feed'), isNull);
+        expect(await database.sampleItemsFor('alice'), isEmpty);
+        await session.establishSession(
+          accountId: 'bob',
+          accessToken: 'b',
+          refreshToken: 'rb',
+        );
+        expect(await preferences.getUserString('filter'), isNull);
+      },
+    );
+  }
+
+  test(
+    'transient secure read error retains persisted scope until new login',
+    () async {
+      secure.failRead = true;
+      await preferences.setUserString('filter', 'alice-private');
+      await database.markFetched('alice', 'feed', DateTime.utc(2026));
+      await session.restore(FixedRefresher(const RefreshAccepted('unused')));
+      expect(await preferences.getUserString('filter'), 'alice-private');
+      expect(await database.metadataFor('alice', 'feed'), isNotNull);
+      await session.establishSession(
+        accountId: 'bob',
+        accessToken: 'b',
+        refreshToken: 'rb',
+      );
+      expect(await preferences.getUserString('filter'), isNull);
+      expect(await database.metadataFor('alice', 'feed'), isNull);
+    },
+  );
+  test('new login waits for prior logout scope cleanup', () async {
+    await session.establishSession(
+      accountId: 'alice',
+      accessToken: 'a',
+      refreshToken: 'ra',
+    );
+    await preferences.setUserString('filter', 'alice-private');
+    await database.markFetched('alice', 'feed', DateTime.utc(2026));
+    secure.deleteGate = Completer<void>();
+    secure.deleteStarted = Completer<void>();
+    final logout = session.logout();
+    await secure.deleteStarted!.future;
+    final login = session.establishSession(
+      accountId: 'bob',
+      accessToken: 'b',
+      refreshToken: 'rb',
+    );
+    expect(session.accessToken, isNull);
+    secure.deleteGate!.complete();
+    await login;
+    await preferences.setUserString('filter', 'bob-private');
+    await logout;
+    expect(session.snapshot.accountId, 'bob');
+    expect(session.snapshot.status, SessionStatus.authenticatedOnline);
+    expect(await preferences.getUserString('filter'), 'bob-private');
+    expect(await database.metadataFor('alice', 'feed'), isNull);
+    expect(jsonDecode(secure.values['session.envelope']!)['accountId'], 'bob');
+  });
+
+  test('current-session rotated write failure remains offline', () async {
+    await session.establishSession(
+      accountId: 'alice',
+      accessToken: 'a',
+      refreshToken: 'old',
+    );
+    secure.writeError = StateError('rotation failed');
+    expect(
+      await session.refreshAccessToken(
+        FixedRefresher(
+          const RefreshAccepted('new-access', refreshToken: 'new'),
+        ),
+      ),
+      isA<StorageFailure>(),
+    );
+    expect(session.snapshot.status, SessionStatus.authenticatedOffline);
+    expect(session.snapshot.accountId, 'alice');
+    expect(session.accessToken, isNull);
+    expect(
+      jsonDecode(secure.values['session.envelope']!)['refreshToken'],
+      'old',
+    );
   });
 }

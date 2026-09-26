@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/errors/app_failure.dart';
 import '../../../core/errors/result.dart';
 import '../../../core/network/network_failure_mapper.dart';
+import '../../../core/logging/app_logger.dart';
 import '../../../core/persistence/app_database.dart'
     show AppDatabase, CacheMetadataEntry, SampleItemsCompanion;
 import '../../../core/session/session_manager.dart';
@@ -19,6 +20,7 @@ final class SampleRepository {
     this._session, {
     this._freshness = const Duration(minutes: 5),
     DateTime Function()? now,
+    this.logger = const DeveloperLogger(),
   }) : _now = now ?? DateTime.now;
 
   static const resourceKey = 'sample.items';
@@ -28,6 +30,7 @@ final class SampleRepository {
   final SessionManager _session;
   final Duration _freshness;
   final DateTime Function() _now;
+  final AppLogger logger;
   final _inFlight = <(String, int), Future<Result<void>>>{};
 
   Stream<List<SampleItem>> watchItems(String accountId) => _database
@@ -105,7 +108,7 @@ final class SampleRepository {
     } on _StaleSampleSession {
       return const Failure<void>(AuthenticationFailure());
     } catch (error, stackTrace) {
-      return Failure<void>(mapNetworkError(error, stackTrace: stackTrace));
+      return Failure<void>(_failure(error, stackTrace));
     } finally {
       _session.releaseRequest(cancelToken);
     }
@@ -150,11 +153,21 @@ final class SampleRepository {
     } on _StaleSampleSession {
       return const Failure<SampleItem>(AuthenticationFailure());
     } catch (error, stackTrace) {
-      return Failure<SampleItem>(
-        mapNetworkError(error, stackTrace: stackTrace),
-      );
+      return Failure<SampleItem>(_failure(error, stackTrace));
     } finally {
       _session.releaseRequest(cancelToken);
     }
+  }
+
+  AppFailure _failure(Object error, StackTrace stackTrace) {
+    final failure = mapNetworkError(error, stackTrace: stackTrace);
+    if (failure is UnknownFailure) {
+      logger.error(
+        'Unexpected sample repository failure',
+        error: failure.cause!,
+        stackTrace: failure.stackTrace ?? stackTrace,
+      );
+    }
+    return failure;
   }
 }

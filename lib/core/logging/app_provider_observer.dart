@@ -16,11 +16,16 @@ final class AppProviderObserver extends ProviderObserver {
     Object error,
     StackTrace stackTrace,
   ) {
-    if (error is ProviderException || error is AppFailure) return;
+    if (error is ProviderException ||
+        (error is AppFailure && error is! UnknownFailure)) {
+      return;
+    }
     logger.error(
       'Unexpected failure in provider ${context.provider.name ?? '(unnamed)'}',
-      error: error,
-      stackTrace: stackTrace,
+      error: error is UnknownFailure ? error.cause! : error,
+      stackTrace: error is UnknownFailure
+          ? error.stackTrace ?? stackTrace
+          : stackTrace,
     );
   }
 }

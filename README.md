@@ -42,7 +42,8 @@ flutter run --flavor prod --dart-define-from-file=config/prod.json
 ```
 
 `dev` is the default flavor. The app checks flavor/configuration alignment in
-debug builds. `config/*.json` contains public settings only, including
+every build mode; release builds also require an explicit `APP_ENV`.
+`config/*.json` contains public settings only, including
 `APP_ENV`, `API_BASE_URL`, and the dev Component Showcase flag. Never put
 secrets in Dart defines. The example API hosts use `.invalid`; the dev sample
 uses a local fake transport, while real staging/prod authentication and API

@@ -17,13 +17,20 @@ one `session.envelope` JSON value with the refresh token and account ID.
 Restoration begins in `restoring`. Missing or unreadable secure material yields
 `unauthenticated`. A temporary refresh failure yields `authenticatedOffline`
 and preserves account-scoped cache; definitive rejection logs out. A later
-call to `restore` retries an offline session. The UI gate sends authenticated
+call to `restore` retries an offline session. `AppRoot` retries restoration when
+the app resumes while authenticated offline; overlapping retries share the
+same in-flight refresh. The UI gate sends authenticated
 online and offline sessions to the application shell and unauthenticated users
 to the login placeholder.
 
 Logout advances the epoch and publishes unauthenticated state before request
 cancellation and storage cleanup. It then removes the secure envelope, the
-active account's Drift metadata, and `user.*` preferences. Capture the account
+active account's Drift data, and `user.*` preferences. Cleanup and session writes
+are serialized so a later login cannot overtake cleanup. A definitively missing
+or corrupt envelope clears all user preferences and account data because the
+prior identity is unknown. A transient secure read exception preserves that
+data until a new login clears it. Switching accounts clears the previous scope
+before publishing the new session. Capture the account
 ID and epoch when starting a user-scoped repository operation. Call
 `isCurrentSession(accountId: ..., epoch: ...)` **inside** its Drift transaction
 before writing any remote response. Cancellation alone is insufficient.

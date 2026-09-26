@@ -16,6 +16,7 @@ import 'package:flutter_starter/features/sample/sample_item.dart';
 
 import '../persistence/app_preferences_test.dart' show MemoryPreferences;
 import '../session/session_manager_test.dart' show MemorySecureStorage;
+import '../errors/provider_error_test.dart' show RecordingLogger;
 
 final class DelayedSampleApi implements SampleApiService {
   final fetch = Completer<List<SampleItem>>();
@@ -35,6 +36,7 @@ void main() {
   late SessionManager session;
   late FakeSampleApiService api;
   late SampleRepository repository;
+  late RecordingLogger logger;
   var now = DateTime.utc(2026, 1, 1);
 
   setUp(() async {
@@ -51,7 +53,14 @@ void main() {
     );
     now = DateTime.utc(2026, 1, 1);
     api = FakeSampleApiService(latency: Duration.zero);
-    repository = SampleRepository(database, api, session, now: () => now);
+    logger = RecordingLogger();
+    repository = SampleRepository(
+      database,
+      api,
+      session,
+      now: () => now,
+      logger: logger,
+    );
   });
   tearDown(() async {
     await session.close();
@@ -117,6 +126,7 @@ void main() {
       (await repository.forceRefresh() as Failure<void>).failure,
       isA<AuthenticationFailure>(),
     );
+    expect(logger.errors, isEmpty);
   });
 
   test('write action inserts returned server item', () async {
@@ -151,6 +161,37 @@ void main() {
         await database.metadataFor('alice', SampleRepository.resourceKey),
         isNull,
       );
+    },
+  );
+
+  test(
+    'refresh and create log unexpected failures with original stacks',
+    () async {
+      final delayed = DelayedSampleApi();
+      final observed = SampleRepository(
+        database,
+        delayed,
+        session,
+        logger: logger,
+      );
+      final error = StateError('malformed DTO');
+      final stack = StackTrace.current;
+      final refresh = observed.forceRefresh();
+      delayed.fetch.completeError(error, stack);
+      final refreshFailure = (await refresh as Failure<void>).failure;
+      expect(refreshFailure, isA<UnknownFailure>());
+      expect(refreshFailure.cause, same(error));
+      final create = observed.createItem('broken');
+      delayed.create.completeError(error, stack);
+      expect(
+        (await create as Failure<SampleItem>).failure,
+        isA<UnknownFailure>(),
+      );
+      expect(logger.errors, hasLength(2));
+      for (final entry in logger.errors) {
+        expect(entry.error, same(error));
+        expect(entry.stackTrace, same(stack));
+      }
     },
   );
 }
