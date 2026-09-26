@@ -79,6 +79,11 @@ flutter build apk --flavor dev --dart-define-from-file=config/dev.json --debug
 flutter build ios --flavor dev --dart-define-from-file=config/dev.json --no-codesign
 ```
 
+GitHub Actions runs generation checks, formatting, analysis, tests, and dev
+builds for Android and iOS using the version in `.fvmrc`. See
+[docs/release.md](docs/release.md) for production obfuscation and symbol
+retention.
+
 ## Architecture at a glance
 
 - `lib/app/` owns startup, configuration, and the root widget.
